@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------
 
 using System;
-using System.Threading.Tasks;
+using System.Threading;
 using Akka.Actor;
 
 namespace Samples.Cluster.RoundRobin
@@ -19,10 +19,10 @@ namespace Samples.Cluster.RoundRobin
         {
             if (message is FrontendCommand)
             {
+                Thread.Sleep(1000);
                 var command = message as FrontendCommand;
                 Console.WriteLine("Backend [{0}]: Received command {1} for job {2} from {3}", Cluster.SelfAddress, command.Message, command.JobId, Sender);
                 Sender.Tell(new CommandComplete());
-                Task.Run(async () => await Task.Delay(1000));
             }
             else
             {
