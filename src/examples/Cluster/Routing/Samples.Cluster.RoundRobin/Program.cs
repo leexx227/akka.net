@@ -6,8 +6,11 @@
 //-----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Configuration;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Cluster.Routing;
 using Akka.Configuration;
@@ -21,16 +24,55 @@ namespace Samples.Cluster.RoundRobin
     {
         private static Config _clusterConfig;
 
-        static void Main(string[] args)
+        private static int backendNum = Environment.ProcessorCount;
+        private static string hostName = Environment.MachineName;
+
+        private static int totalClient = 1;
+        private static int requestPerClient = 10;
+
+        private static List<Task> tasks = new List<Task>();
+        private static List<IActorRef> clients = new List<IActorRef>();
+
+        static async Task Main(string[] args)
         {
             var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
             _clusterConfig = section.AkkaConfig;
-            LaunchBackend(new[] { "2551" });
-            LaunchBackend(new[] { "2552" });
-            LaunchBackend(new string[0]);
-            LaunchFrontend(new string[0]);
-            LaunchFrontend(new string[0]);
-            Console.WriteLine("Press any key to exit.");
+            //LaunchBackend(new[] { "2551" });
+            //LaunchBackend(new[] { "2552" });
+            //LaunchBackend(new string[0]);
+            //LaunchFrontend(new string[0]);
+            //LaunchFrontend(new string[0]);
+            //Console.WriteLine("Press any key to exit.");
+            //Console.ReadKey();
+
+            //var config =
+            //        ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=0")
+            //        .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
+            //        .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+            //            .WithFallback(_clusterConfig);
+            //var system = ActorSystem.Create("ClusterSystem", config);
+
+            for (int i = 0; i < totalClient; i++)
+            {
+                GetFrontend(new string[0]);
+            }
+
+            var counter = new AtomicCounter();
+            var interval = TimeSpan.FromSeconds(1);
+
+            var sw = Stopwatch.StartNew();
+            //clients.ForEach(c =>
+            //{
+            //    system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => c.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
+            //});
+
+            var waiting = Task.WhenAll(tasks);
+            await Task.WhenAll(waiting);
+            sw.Stop();
+
+            var useTime = sw.ElapsedMilliseconds;
+            Console.WriteLine($"Used total time: {useTime}");
+            Console.WriteLine("Done...");
             Console.ReadKey();
         }
 
@@ -40,29 +82,43 @@ namespace Samples.Cluster.RoundRobin
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
                     .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [backend]"))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
                         .WithFallback(_clusterConfig);
 
             var system = ActorSystem.Create("ClusterSystem", config);
             system.ActorOf(Props.Create<BackendActor>(), "backend");
         }
 
-        static void LaunchFrontend(string[] args)
+        static void GetFrontend(string[] args)
         {
             var port = args.Length > 0 ? args[0] : "0";
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
                     .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
                         .WithFallback(_clusterConfig);
 
             var system = ActorSystem.Create("ClusterSystem", config);
+
+            var ts = new TaskCompletionSource<bool>();
+            //var backendRouter =
+            //    system.ActorOf(
+            //        Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup("/user/backend"),
+            //            new ClusterRouterGroupSettings(10, ImmutableHashSet.Create("/user/backend"), false, "backend"))));
+
+            var workers = new[] { "/user/backend" };
             var backendRouter =
                 system.ActorOf(
-                    Props.Empty.WithRouter(new ClusterRouterGroup(new ConsistentHashingGroup("/user/backend"),
-                        new ClusterRouterGroupSettings(10, ImmutableHashSet.Create("/user/backend"), false, "backend"))));
-            var frontend = system.ActorOf(Props.Create(() => new FrontendActor(backendRouter)), "frontend");
+                    Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup(workers),
+                        new ClusterRouterGroupSettings(1000, workers, true, "backend"))));
+            var frontend = system.ActorOf(Props.Create(() => new FrontendActor(backendRouter, requestPerClient, ts)), "frontend");
+
+            tasks.Add(ts.Task);
+            clients.Add(frontend);
+
             var interval = TimeSpan.FromSeconds(1);
             var counter = new AtomicCounter();
-            system.Scheduler.Advanced.ScheduleRepeatedly(interval, interval,() => frontend.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
+            system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => frontend.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
         }
     }
 }
