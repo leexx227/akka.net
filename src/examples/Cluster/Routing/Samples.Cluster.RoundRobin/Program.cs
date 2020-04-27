@@ -27,7 +27,7 @@ namespace Samples.Cluster.RoundRobin
         private static int backendNum = Environment.ProcessorCount;
         private static string hostName = Environment.MachineName;
 
-        private static int totalClient = 1;
+        private static int totalClient = 3;
         private static int requestPerClient = 10;
 
         private static List<Task> tasks = new List<Task>();
@@ -45,12 +45,12 @@ namespace Samples.Cluster.RoundRobin
             //Console.WriteLine("Press any key to exit.");
             //Console.ReadKey();
 
-            //var config =
-            //        ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=0")
-            //        .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
-            //        .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
-            //            .WithFallback(_clusterConfig);
-            //var system = ActorSystem.Create("ClusterSystem", config);
+            var config =
+                    ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=0")
+                    .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+                        .WithFallback(_clusterConfig);
+            var system = ActorSystem.Create("ClusterSystem", config);
 
             for (int i = 0; i < totalClient; i++)
             {
@@ -61,10 +61,10 @@ namespace Samples.Cluster.RoundRobin
             var interval = TimeSpan.FromSeconds(1);
 
             var sw = Stopwatch.StartNew();
-            //clients.ForEach(c =>
-            //{
-            //    system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => c.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
-            //});
+            clients.ForEach(c =>
+            {
+                system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => c.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
+            });
 
             var waiting = Task.WhenAll(tasks);
             await Task.WhenAll(waiting);
@@ -116,9 +116,9 @@ namespace Samples.Cluster.RoundRobin
             tasks.Add(ts.Task);
             clients.Add(frontend);
 
-            var interval = TimeSpan.FromSeconds(1);
-            var counter = new AtomicCounter();
-            system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => frontend.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
+            //var interval = TimeSpan.FromSeconds(1);
+            //var counter = new AtomicCounter();
+            //system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => frontend.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
         }
     }
 }
