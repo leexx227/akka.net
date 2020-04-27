@@ -79,7 +79,6 @@ namespace Samples.Cluster.RoundRobin
                 {
                     Console.WriteLine("Frontend [{0}]: Finish all the {1} jobs", Cluster.SelfAddress, jobCount);
                     jobCompletion.TrySetResult(true);
-                    Context.Stop(Self);
                 }
             }
         }

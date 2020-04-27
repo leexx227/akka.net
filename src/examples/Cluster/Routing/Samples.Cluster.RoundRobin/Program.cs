@@ -32,6 +32,7 @@ namespace Samples.Cluster.RoundRobin
 
         private static List<Task> tasks = new List<Task>();
         private static List<IActorRef> clients = new List<IActorRef>();
+        private static List<ActorSystem> systems = new List<ActorSystem>();
 
         static async Task Main(string[] args)
         {
@@ -52,6 +53,9 @@ namespace Samples.Cluster.RoundRobin
                         .WithFallback(_clusterConfig);
             var system = ActorSystem.Create("ClusterSystem", config);
 
+            systems.Add(system);
+
+            var sw = Stopwatch.StartNew();
             for (int i = 0; i < totalClient; i++)
             {
                 GetFrontend(new string[0]);
@@ -60,15 +64,32 @@ namespace Samples.Cluster.RoundRobin
             var counter = new AtomicCounter();
             var interval = TimeSpan.FromSeconds(1);
 
-            var sw = Stopwatch.StartNew();
-            clients.ForEach(c =>
+            clients.ForEach(async (c) =>
             {
-                system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => c.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
+                //system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => c.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
+                int job = 0;
+                while (job < requestPerClient)
+                {
+                    c.Tell(new StartCommand("hello-" + counter.GetAndIncrement()));
+                    job++;
+                    Console.WriteLine($"[{DateTime.UtcNow}][{c.Path}]  job: {job}");
+                    await Task.Delay(500);
+                }
             });
 
-            var waiting = Task.WhenAll(tasks);
-            await Task.WhenAll(waiting);
+            await Task.WhenAll(tasks);
             sw.Stop();
+
+            //systems.ForEach(s => s.Terminate());
+            List<Task> systemTermination = new List<Task>();
+            for (int i = 0; i < systems.Count; i++)
+            {
+                systemTermination.Add(systems[i].Terminate());
+            }
+
+            Console.WriteLine("Begin terminate system");
+            await Task.WhenAll(systemTermination);
+            Console.WriteLine("Finish terminate system");
 
             var useTime = sw.ElapsedMilliseconds;
             Console.WriteLine($"Used total time: {useTime}");
@@ -115,6 +136,7 @@ namespace Samples.Cluster.RoundRobin
 
             tasks.Add(ts.Task);
             clients.Add(frontend);
+            systems.Add(system);
 
             //var interval = TimeSpan.FromSeconds(1);
             //var counter = new AtomicCounter();
