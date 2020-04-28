@@ -6,8 +6,6 @@
 //-----------------------------------------------------------------------
 
 using System;
-using System.Diagnostics;
-using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Cluster;
 
@@ -43,7 +41,6 @@ namespace Samples.Cluster.RoundRobin
 
         protected override void OnReceive(object message)
         {
-            var sender = Sender;
             if (message is ClusterEvent.MemberUp)
             {
                 Console.WriteLine("Frontend [{0}]: Cluster is ready. Able to begin jobs.");
@@ -74,6 +71,7 @@ namespace Samples.Cluster.RoundRobin
                 Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
             }
         }
+
 
         public IStash Stash { get; set; }
     }

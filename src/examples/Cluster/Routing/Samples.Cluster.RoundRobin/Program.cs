@@ -47,13 +47,11 @@ namespace Samples.Cluster.RoundRobin
 
             var client = GetFrontend(new string[0]);
 
-            await Task.Delay(0);
-
             sw = Stopwatch.StartNew();
 
             for (int i = 0; i < totalRequest; i++)
             {
-                tasks.Add(client.Ask(new StartCommand("hello-" + i)));
+                client.Tell(new StartCommand("hello-" + i));
             }
             //await Task.WhenAll(tasks);
             //sw.Stop();
