@@ -6,6 +6,7 @@
 //-----------------------------------------------------------------------
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Cluster;
@@ -17,14 +18,9 @@ namespace Samples.Cluster.RoundRobin
         protected readonly IActorRef BackendRouter;
         protected int jobCount = 0;
 
-        private readonly TaskCompletionSource<bool> jobCompletion;
-        private int maxJobs;
-
-        public FrontendActor(IActorRef backendRouter, int totalJobs, TaskCompletionSource<bool> completion)
+        public FrontendActor(IActorRef backendRouter)
         {
             BackendRouter = backendRouter;
-            maxJobs = totalJobs;
-            jobCompletion = completion;
         }
 
         protected Akka.Cluster.Cluster Cluster = Akka.Cluster.Cluster.Get(Context.System);
@@ -47,6 +43,7 @@ namespace Samples.Cluster.RoundRobin
 
         protected override void OnReceive(object message)
         {
+            var sender = Sender;
             if (message is ClusterEvent.MemberUp)
             {
                 Console.WriteLine("Frontend [{0}]: Cluster is ready. Able to begin jobs.");
@@ -74,12 +71,7 @@ namespace Samples.Cluster.RoundRobin
             else if (message is CommandComplete)
             {
                 jobCount++;
-                Console.WriteLine("Frontend [{0}]: Received {1} CommandComplete from {2}", Cluster.SelfAddress, jobCount, Sender);
-                if (jobCount >= maxJobs)
-                {
-                    Console.WriteLine("Frontend [{0}]: Finish all the {1} jobs", Cluster.SelfAddress, jobCount);
-                    jobCompletion.TrySetResult(true);
-                }
+                Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
             }
         }
 

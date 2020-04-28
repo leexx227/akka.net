@@ -27,12 +27,11 @@ namespace Samples.Cluster.RoundRobin
         private static int backendNum = Environment.ProcessorCount;
         private static string hostName = Environment.MachineName;
 
-        private static int totalClient = 3;
-        private static int requestPerClient = 10;
+        private static int totalRequest = 10;
 
         private static List<Task> tasks = new List<Task>();
-        private static List<IActorRef> clients = new List<IActorRef>();
-        private static List<ActorSystem> systems = new List<ActorSystem>();
+
+        public static Stopwatch sw;
 
         static async Task Main(string[] args)
         {
@@ -46,54 +45,22 @@ namespace Samples.Cluster.RoundRobin
             //Console.WriteLine("Press any key to exit.");
             //Console.ReadKey();
 
-            var config =
-                    ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=0")
-                    .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
-                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
-                        .WithFallback(_clusterConfig);
-            var system = ActorSystem.Create("ClusterSystem", config);
+            var client = GetFrontend(new string[0]);
 
-            systems.Add(system);
+            await Task.Delay(0);
 
-            var sw = Stopwatch.StartNew();
-            for (int i = 0; i < totalClient; i++)
+            sw = Stopwatch.StartNew();
+
+            for (int i = 0; i < totalRequest; i++)
             {
-                GetFrontend(new string[0]);
+                tasks.Add(client.Ask(new StartCommand("hello-" + i)));
             }
+            //await Task.WhenAll(tasks);
+            //sw.Stop();
 
-            var counter = new AtomicCounter();
-            var interval = TimeSpan.FromSeconds(1);
-
-            clients.ForEach(async (c) =>
-            {
-                //system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => c.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
-                int job = 0;
-                while (job < requestPerClient)
-                {
-                    c.Tell(new StartCommand("hello-" + counter.GetAndIncrement()));
-                    job++;
-                    Console.WriteLine($"[{DateTime.UtcNow}][{c.Path}]  job: {job}");
-                    await Task.Delay(500);
-                }
-            });
-
-            await Task.WhenAll(tasks);
-            sw.Stop();
-
-            //systems.ForEach(s => s.Terminate());
-            List<Task> systemTermination = new List<Task>();
-            for (int i = 0; i < systems.Count; i++)
-            {
-                systemTermination.Add(systems[i].Terminate());
-            }
-
-            Console.WriteLine("Begin terminate system");
-            await Task.WhenAll(systemTermination);
-            Console.WriteLine("Finish terminate system");
-
-            var useTime = sw.ElapsedMilliseconds;
-            Console.WriteLine($"Used total time: {useTime}");
-            Console.WriteLine("Done...");
+            //var useTime = sw.ElapsedMilliseconds;
+            //Console.WriteLine($"Used total time: {useTime}");
+            //Console.WriteLine("Done...");
             Console.ReadKey();
         }
 
@@ -110,7 +77,7 @@ namespace Samples.Cluster.RoundRobin
             system.ActorOf(Props.Create<BackendActor>(), "backend");
         }
 
-        static void GetFrontend(string[] args)
+        static IActorRef GetFrontend(string[] args)
         {
             var port = args.Length > 0 ? args[0] : "0";
             var config =
@@ -132,11 +99,9 @@ namespace Samples.Cluster.RoundRobin
                 system.ActorOf(
                     Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup(workers),
                         new ClusterRouterGroupSettings(1000, workers, true, "backend"))));
-            var frontend = system.ActorOf(Props.Create(() => new FrontendActor(backendRouter, requestPerClient, ts)), "frontend");
+            var frontend = system.ActorOf(Props.Create(() => new FrontendActor(backendRouter)), "frontend");
 
-            tasks.Add(ts.Task);
-            clients.Add(frontend);
-            systems.Add(system);
+            return frontend;
 
             //var interval = TimeSpan.FromSeconds(1);
             //var counter = new AtomicCounter();
