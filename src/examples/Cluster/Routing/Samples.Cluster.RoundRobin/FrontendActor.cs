@@ -59,7 +59,7 @@ namespace Samples.Cluster.RoundRobin
             if (message is StartCommand)
             {
                 var sc = message as StartCommand;
-                BackendRouter.Tell(new FrontendCommand()
+                BackendRouter.Forward(new FrontendCommand()
                 {
                     Message = string.Format("message {0}", jobCount),
                     JobId = sc.CommandText
