@@ -24,10 +24,10 @@ namespace Samples.Cluster.RoundRobin
     {
         private static Config _clusterConfig;
 
-        private static int backendNum = Environment.ProcessorCount;
+        private static int backendNum = 30;
         private static string hostName = Environment.MachineName;
 
-        private static int totalRequest = 20;
+        private static int totalRequest = 30;
 
         private static List<Task> tasks = new List<Task>();
 
@@ -49,41 +49,41 @@ namespace Samples.Cluster.RoundRobin
             //var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
             //_clusterConfig = section.AkkaConfig;
 
-            //int currentBackendNum = 0;
+            int currentBackendNum = 0;
 
-            //if (args.Length >= 1)
-            //{
-            //    backendNum = Int32.Parse(args[0]);
-            //}
-            //else
-            //{
-            //    LaunchBackend(new[] { "2551" });
-            //    LaunchBackend(new[] { "2552" });
+            if (args.Length >= 1)
+            {
+                backendNum = Int32.Parse(args[0]);
+            }
+            else
+            {
+                LaunchBackend(new[] { "2551" });
+                LaunchBackend(new[] { "2552" });
 
-            //    currentBackendNum = 2;
-            //}
-            //while (currentBackendNum < backendNum)
-            //{
-            //    LaunchBackend(new string[0]);
-            //    currentBackendNum++;
-            //}
+                currentBackendNum = 2;
+            }
+            while (currentBackendNum < backendNum)
+            {
+                LaunchBackend(new string[0]);
+                currentBackendNum++;
+            }
 
             var client = GetFrontend(new string[0]);
 
-            await Task.Delay(5000);
+            //await Task.Delay(5000);
 
             sw = Stopwatch.StartNew();
 
             for (int i = 0; i < totalRequest; i++)
             {
-                //client.Tell(new StartCommand("hello-" + i));
-                tasks.Add(client.Ask(new StartCommand("hello-" + i)).ContinueWith(r => Console.WriteLine($"Received: {r.Result}")));
+                client.Tell(new StartCommand("hello-" + i));
+                //tasks.Add(client.Ask(new StartCommand("hello-" + i)).ContinueWith(r => Console.WriteLine($"Received: {r.Result}")));
             }
-            await Task.WhenAll(tasks);
-            sw.Stop();
+            //await Task.WhenAll(tasks);
+            //sw.Stop();
 
-            var useTime = sw.ElapsedMilliseconds;
-            Console.WriteLine($"Used total time: {useTime}");
+            //var useTime = sw.ElapsedMilliseconds;
+            //Console.WriteLine($"Used total time: {useTime}");
             Console.WriteLine("Done...");
             Console.ReadKey();
         }
