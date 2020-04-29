@@ -24,12 +24,10 @@ namespace Samples.Cluster.RoundRobin
     {
         private static Config _clusterConfig;
 
-        private static int backendNum = 30;
+        private static int backendNum = Environment.ProcessorCount;
         private static string hostName = Environment.MachineName;
 
-        private static int totalRequest = 30;
-
-        private static List<Task> tasks = new List<Task>();
+        public static int totalRequest = 50;
 
         public static Stopwatch sw;
 
@@ -37,54 +35,13 @@ namespace Samples.Cluster.RoundRobin
         {
             var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
             _clusterConfig = section.AkkaConfig;
-            //LaunchBackend(new[] { "2551" });
-            //LaunchBackend(new[] { "2552" });
-            //LaunchBackend(new string[0]);
-            //LaunchFrontend(new string[0]);
-            //LaunchFrontend(new string[0]);
-            //Console.WriteLine("Press any key to exit.");
-            //Console.ReadKey();
 
             // backend
-            //var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
-            //_clusterConfig = section.AkkaConfig;
+            await StartBackend(args);
 
-            int currentBackendNum = 0;
+            // frontend
+            await StartFrontend(args);
 
-            if (args.Length >= 1)
-            {
-                backendNum = Int32.Parse(args[0]);
-            }
-            else
-            {
-                LaunchBackend(new[] { "2551" });
-                LaunchBackend(new[] { "2552" });
-
-                currentBackendNum = 2;
-            }
-            while (currentBackendNum < backendNum)
-            {
-                LaunchBackend(new string[0]);
-                currentBackendNum++;
-            }
-
-            var client = GetFrontend(new string[0]);
-
-            //await Task.Delay(5000);
-
-            sw = Stopwatch.StartNew();
-
-            for (int i = 0; i < totalRequest; i++)
-            {
-                client.Tell(new StartCommand("hello-" + i));
-                //tasks.Add(client.Ask(new StartCommand("hello-" + i)).ContinueWith(r => Console.WriteLine($"Received: {r.Result}")));
-            }
-            //await Task.WhenAll(tasks);
-            //sw.Stop();
-
-            //var useTime = sw.ElapsedMilliseconds;
-            //Console.WriteLine($"Used total time: {useTime}");
-            Console.WriteLine("Done...");
             Console.ReadKey();
         }
 
@@ -130,6 +87,46 @@ namespace Samples.Cluster.RoundRobin
             //var interval = TimeSpan.FromSeconds(1);
             //var counter = new AtomicCounter();
             //system.Scheduler.Advanced.ScheduleRepeatedly(TimeSpan.FromSeconds(0), interval, () => frontend.Tell(new StartCommand("hello-" + counter.GetAndIncrement())));
+        }
+
+        static async Task StartBackend(string[] args)
+        {
+            int currentBackendNum = 0;
+
+            if (args.Length >= 1)
+            {
+                backendNum = int.Parse(args[0]);
+            }
+            else
+            {
+                LaunchBackend(new[] { "2551" });
+                LaunchBackend(new[] { "2552" });
+
+                currentBackendNum = 2;
+            }
+            while (currentBackendNum < backendNum)
+            {
+                LaunchBackend(new string[0]);
+                currentBackendNum++;
+                Console.WriteLine($"Launch {currentBackendNum} backend actors.");
+                await Task.Delay(2000);
+            }
+        }
+
+        static async Task StartFrontend(string[] args)
+        {
+            var client = GetFrontend(new string[0]);
+
+            await Task.Delay(5000);
+
+            sw = Stopwatch.StartNew();
+
+            for (int i = 0; i < totalRequest; i++)
+            {
+                client.Tell(new StartCommand("hello-" + i));
+                //await Task.Delay(500);
+                //tasks.Add(client.Ask(new StartCommand("hello-" + i)).ContinueWith(r => Console.WriteLine($"Received: {r.Result}")));
+            }
         }
     }
 }

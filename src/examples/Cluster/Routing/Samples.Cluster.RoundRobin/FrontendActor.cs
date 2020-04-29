@@ -15,6 +15,7 @@ namespace Samples.Cluster.RoundRobin
     {
         protected readonly IActorRef BackendRouter;
         protected int jobCount = 0;
+        protected int sendJobCount = 0;
 
         public FrontendActor(IActorRef backendRouter)
         {
@@ -58,18 +59,23 @@ namespace Samples.Cluster.RoundRobin
         {
             if (message is StartCommand)
             {
+                sendJobCount++;
                 var sc = message as StartCommand;
                 BackendRouter.Tell(new FrontendCommand()
                 {
-                    Message = string.Format("message {0}", jobCount),
+                    Message = string.Format("message {0}", sendJobCount),
                     JobId = sc.CommandText
                 });
-                Console.WriteLine($"Frontend [{Cluster.SelfAddress}]: Send request: {jobCount}");
+                Console.WriteLine($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
             }
             else if (message is CommandComplete)
             {
                 jobCount++;
                 Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
+                if (jobCount == Program.totalRequest)
+                {
+                    for (int i = 0; i < 20; i++) Console.WriteLine("Finish");
+                }
             }
         }
 
