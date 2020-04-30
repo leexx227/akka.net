@@ -21,7 +21,7 @@ namespace Samples.Cluster.RoundRobin
             {
                 Thread.Sleep(1000);
                 var command = message as FrontendCommand;
-                Console.WriteLine("Backend [{0}]: Received command {1} for job {2} from {3}", Cluster.SelfAddress, command.Message, command.JobId, Sender);
+                //Console.WriteLine("Backend [{0}]: Received command {1} for job {2} from {3}", Cluster.SelfAddress, command.Message, command.JobId, Sender);
                 Sender.Tell(new CommandComplete());
             }
             else

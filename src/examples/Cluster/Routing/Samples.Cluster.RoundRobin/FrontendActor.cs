@@ -66,15 +66,15 @@ namespace Samples.Cluster.RoundRobin
                     Message = string.Format("message {0}", sendJobCount),
                     JobId = sc.CommandText
                 });
-                Console.WriteLine($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
+                //Console.WriteLine($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
             }
             else if (message is CommandComplete)
             {
                 jobCount++;
-                Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
+                //Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
                 if (jobCount == Program.totalRequest)
                 {
-                    for (int i = 0; i < 20; i++) Console.WriteLine("Finish");
+                    Console.WriteLine ($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
                 }
             }
         }

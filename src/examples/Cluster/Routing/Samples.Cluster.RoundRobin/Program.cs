@@ -27,7 +27,7 @@ namespace Samples.Cluster.RoundRobin
         private static int backendNum = Environment.ProcessorCount;
         private static string hostName = Environment.MachineName;
 
-        public static int totalRequest = 50;
+        public static int totalRequest = 1000000;
 
         public static Stopwatch sw;
 
@@ -37,7 +37,7 @@ namespace Samples.Cluster.RoundRobin
             _clusterConfig = section.AkkaConfig;
 
             // backend
-            await StartBackend(args);
+            //await StartBackend(args);
 
             // frontend
             await StartFrontend(args);
@@ -78,7 +78,7 @@ namespace Samples.Cluster.RoundRobin
             var workers = new[] { "/user/backend" };
             var backendRouter =
                 system.ActorOf(
-                    Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup(workers),
+                    Props.Empty.WithRouter(new ClusterRouterGroup(new RandomGroup(workers),
                         new ClusterRouterGroupSettings(1000, workers, true, "backend"))));
             var frontend = system.ActorOf(Props.Create(() => new FrontendActor(backendRouter)), "frontend");
 
@@ -109,7 +109,6 @@ namespace Samples.Cluster.RoundRobin
                 LaunchBackend(new string[0]);
                 currentBackendNum++;
                 Console.WriteLine($"Launch {currentBackendNum} backend actors.");
-                await Task.Delay(2000);
             }
         }
 
@@ -117,14 +116,13 @@ namespace Samples.Cluster.RoundRobin
         {
             var client = GetFrontend(new string[0]);
 
-            await Task.Delay(5000);
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
             sw = Stopwatch.StartNew();
 
             for (int i = 0; i < totalRequest; i++)
             {
                 client.Tell(new StartCommand("hello-" + i));
-                //await Task.Delay(500);
                 //tasks.Add(client.Ask(new StartCommand("hello-" + i)).ContinueWith(r => Console.WriteLine($"Received: {r.Result}")));
             }
         }
