@@ -6,6 +6,7 @@
 //-----------------------------------------------------------------------
 
 using System;
+using System.Threading;
 using Akka.Actor;
 using Akka.Cluster;
 using Akka.Event;
@@ -70,16 +71,17 @@ namespace Samples.Cluster.RoundRobin
                     JobId = sc.CommandText
                 });
                 //Console.WriteLine($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
-                Log.Debug($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
+                Log.Info($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
             }
             else if (message is CommandComplete)
             {
                 jobCount++;
                 //Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
-                Log.Debug($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
+                Log.Info($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
                 if (jobCount == Program.totalRequest)
                 {
-                    Console.WriteLine ($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
+                    //Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
+                    Log.Info($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
                 }
             }
         }

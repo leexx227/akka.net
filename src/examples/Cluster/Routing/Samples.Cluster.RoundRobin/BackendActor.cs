@@ -22,10 +22,10 @@ namespace Samples.Cluster.RoundRobin
         {
             if (message is FrontendCommand)
             {
-                Thread.Sleep(1000);
+                //Thread.Sleep(1000);
                 var command = message as FrontendCommand;
                 //Console.WriteLine("Backend [{0}]: Received command {1} for job {2} from {3}", Cluster.SelfAddress, command.Message, command.JobId, Sender);
-                Log.Debug("Backend [{0}]: Received command {1} for job {2} from {3}", Cluster.SelfAddress, command.Message, command.JobId, Sender);
+                Log.Info("Backend [{0}]: Received command {1} for job {2} from {3}", Cluster.SelfAddress, command.Message, command.JobId, Sender);
                 Sender.Tell(new CommandComplete());
             }
             else
