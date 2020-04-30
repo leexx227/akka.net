@@ -78,7 +78,7 @@ namespace Samples.Cluster.RoundRobin
             var workers = new[] { "/user/backend" };
             var backendRouter =
                 system.ActorOf(
-                    Props.Empty.WithRouter(new ClusterRouterGroup(new RandomGroup(workers),
+                    Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup(workers),
                         new ClusterRouterGroupSettings(1000, workers, true, "backend"))));
             var frontend = system.ActorOf(Props.Create(() => new FrontendActor(backendRouter)), "frontend");
 
