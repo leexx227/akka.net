@@ -27,7 +27,7 @@ namespace Samples.Cluster.RoundRobin
         private static int backendNum = Environment.ProcessorCount;
         private static string hostName = Environment.MachineName;
 
-        public static int totalRequest = 1000000;
+        public static int totalRequest = 1000;
 
         public static Stopwatch sw;
 
@@ -40,8 +40,11 @@ namespace Samples.Cluster.RoundRobin
             //await StartBackend(args);
 
             // frontend
-            var client = GetFrontend(new string[0]);
+            var client = GetFrontendWithRouter(new string[0]);
             await StartFrontend(args, client);
+
+            // router
+            //var router = GetRouter(args);
 
             Console.ReadKey();
         }
@@ -127,7 +130,7 @@ namespace Samples.Cluster.RoundRobin
 
         static IActorRef GetRouter(string[] args)
         {
-            var port = args.Length > 0 ? args[0] : "0";
+            var port = args.Length > 0 ? args[0] : "2553";
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
                     .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [router]"))
@@ -141,10 +144,11 @@ namespace Samples.Cluster.RoundRobin
                 system.ActorOf(
                     Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup(workers),
                         new ClusterRouterGroupSettings(1000, workers, true, "backend"))), "router");
+            Console.WriteLine("Router start.");
             return backendRouter;
         }
 
-        static IActorRef GetFrontendWithRouter(string[] args, IActorRef client)
+        static IActorRef GetFrontendWithRouter(string[] args)
         {
             var port = args.Length > 0 ? args[0] : "0";
             var config =

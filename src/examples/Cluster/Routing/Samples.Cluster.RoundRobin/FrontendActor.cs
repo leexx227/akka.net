@@ -99,7 +99,7 @@ namespace Samples.Cluster.RoundRobin
                 Log.Info($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
                 if (jobCount == Program.totalRequest)
                 {
-                    //Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
+                    Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
                     Log.Info($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
                 }
             }
