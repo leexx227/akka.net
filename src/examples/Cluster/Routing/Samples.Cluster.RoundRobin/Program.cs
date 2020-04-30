@@ -40,7 +40,8 @@ namespace Samples.Cluster.RoundRobin
             //await StartBackend(args);
 
             // frontend
-            await StartFrontend(args);
+            var client = GetFrontend(new string[0]);
+            await StartFrontend(args, client);
 
             Console.ReadKey();
         }
@@ -69,7 +70,6 @@ namespace Samples.Cluster.RoundRobin
 
             var system = ActorSystem.Create("ClusterSystem", config);
 
-            var ts = new TaskCompletionSource<bool>();
             //var backendRouter =
             //    system.ActorOf(
             //        Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup("/user/backend"),
@@ -112,10 +112,8 @@ namespace Samples.Cluster.RoundRobin
             }
         }
 
-        static async Task StartFrontend(string[] args)
+        static async Task StartFrontend(string[] args, IActorRef client)
         {
-            var client = GetFrontend(new string[0]);
-
             await Task.Delay(TimeSpan.FromSeconds(20));
 
             sw = Stopwatch.StartNew();
@@ -125,6 +123,41 @@ namespace Samples.Cluster.RoundRobin
                 client.Tell(new StartCommand("hello-" + i));
                 //tasks.Add(client.Ask(new StartCommand("hello-" + i)).ContinueWith(r => Console.WriteLine($"Received: {r.Result}")));
             }
+        }
+
+        static IActorRef GetRouter(string[] args)
+        {
+            var port = args.Length > 0 ? args[0] : "0";
+            var config =
+                    ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
+                    .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [router]"))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+                        .WithFallback(_clusterConfig);
+
+            var system = ActorSystem.Create("ClusterSystem", config);
+
+            var workers = new[] { "/user/backend" };
+            var backendRouter =
+                system.ActorOf(
+                    Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup(workers),
+                        new ClusterRouterGroupSettings(1000, workers, true, "backend"))), "router");
+            return backendRouter;
+        }
+
+        static IActorRef GetFrontendWithRouter(string[] args, IActorRef client)
+        {
+            var port = args.Length > 0 ? args[0] : "0";
+            var config =
+                    ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
+                    .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+                        .WithFallback(_clusterConfig);
+
+            var system = ActorSystem.Create("ClusterSystem", config);
+
+            var frontend = system.ActorOf(Props.Create(() => new FrontendActor()), "frontend");
+
+            return frontend;
         }
     }
 }

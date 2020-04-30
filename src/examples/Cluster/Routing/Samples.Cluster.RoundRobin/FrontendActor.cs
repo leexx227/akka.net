@@ -21,9 +21,16 @@ namespace Samples.Cluster.RoundRobin
 
         protected ILoggingAdapter Log { get; } = Context.GetLogger();
 
+        private string routerPath = "akka.tcp://ClusterSystem@AkkaDotNetRoute:2553/user/router";
+
         public FrontendActor(IActorRef backendRouter)
         {
             BackendRouter = backendRouter;
+        }
+
+        public FrontendActor()
+        {
+            BackendRouter = default(IActorRef);
         }
 
         protected Akka.Cluster.Cluster Cluster = Akka.Cluster.Cluster.Get(Context.System);
@@ -65,11 +72,23 @@ namespace Samples.Cluster.RoundRobin
             {
                 sendJobCount++;
                 var sc = message as StartCommand;
-                BackendRouter.Tell(new FrontendCommand()
+                if (BackendRouter == default(IActorRef))
                 {
-                    Message = string.Format("message {0}", sendJobCount),
-                    JobId = sc.CommandText
-                });
+                    Context.ActorSelection(routerPath).Tell(new FrontendCommand()
+                    {
+                        Message = string.Format("message {0}", sendJobCount),
+                        JobId = sc.CommandText
+                    });
+                }
+                else
+                {
+                    BackendRouter.Tell(new FrontendCommand()
+                    {
+                        Message = string.Format("message {0}", sendJobCount),
+                        JobId = sc.CommandText
+                    });
+                }
+                
                 //Console.WriteLine($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
                 Log.Info($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
             }
@@ -85,7 +104,6 @@ namespace Samples.Cluster.RoundRobin
                 }
             }
         }
-
 
         public IStash Stash { get; set; }
     }
