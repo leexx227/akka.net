@@ -8,6 +8,7 @@
 using System;
 using Akka.Actor;
 using Akka.Cluster;
+using Akka.Event;
 
 namespace Samples.Cluster.RoundRobin
 {
@@ -16,6 +17,8 @@ namespace Samples.Cluster.RoundRobin
         protected readonly IActorRef BackendRouter;
         protected int jobCount = 0;
         protected int sendJobCount = 0;
+
+        protected ILoggingAdapter Log { get; } = Context.GetLogger();
 
         public FrontendActor(IActorRef backendRouter)
         {
@@ -67,11 +70,13 @@ namespace Samples.Cluster.RoundRobin
                     JobId = sc.CommandText
                 });
                 //Console.WriteLine($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
+                Log.Debug($"Frontend [{Cluster.SelfAddress}]: Send request: {sendJobCount}");
             }
             else if (message is CommandComplete)
             {
                 jobCount++;
                 //Console.WriteLine($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
+                Log.Debug($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Received {jobCount} CommandComplete from {Sender}");
                 if (jobCount == Program.totalRequest)
                 {
                     Console.WriteLine ($"[{Program.sw.ElapsedMilliseconds}]Frontend [{Cluster.SelfAddress}]: Finish jobs.");
