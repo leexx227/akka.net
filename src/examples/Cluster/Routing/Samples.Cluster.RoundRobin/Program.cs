@@ -36,15 +36,25 @@ namespace Samples.Cluster.RoundRobin
             var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
             _clusterConfig = section.AkkaConfig;
 
-            // backend
-            //await StartBackend(args);
-
-            // frontend
-            var client = GetFrontendWithRouter(new string[0]);
-            await StartFrontend(args, client);
-
-            // router
-            //var router = GetRouter(args);
+            switch (args[0].ToLower())
+            {
+                case "frountend":
+                    // frontend
+                    var client = GetFrontendWithRouter(new string[0]);
+                    await StartFrontend(args, client);
+                    break;
+                case "backend":
+                    // backend
+                    await StartBackend(args);
+                    break;
+                case "router":
+                    // router
+                    var router = GetRouter(args);
+                    break;
+                default:
+                    Console.WriteLine("Only support frontend, backend, router");
+                    break;
+            }
 
             Console.ReadKey();
         }
@@ -96,9 +106,9 @@ namespace Samples.Cluster.RoundRobin
         {
             int currentBackendNum = 0;
 
-            if (args.Length >= 1)
+            if (args.Length >= 2)
             {
-                backendNum = int.Parse(args[0]);
+                backendNum = int.Parse(args[1]);
             }
             else
             {
