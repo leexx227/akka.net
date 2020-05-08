@@ -27,7 +27,7 @@ namespace Samples.Cluster.RoundRobin
         private static int backendNum = Environment.ProcessorCount;
         private static string hostName = Environment.MachineName;
 
-        public static int totalRequest = 1000;
+        public static int totalRequest = 10;
 
         public static Stopwatch sw;
 
@@ -38,29 +38,38 @@ namespace Samples.Cluster.RoundRobin
 
             switch (args[0].ToLower())
             {
-                case "frountend":
+                case "frontend":
                     // frontend
                     var client = GetFrontendWithRouter(new string[0]);
-                    await StartFrontend(args, client);
+                    await StartFrontend(client);
                     break;
                 case "backend":
                     // backend
                     await StartBackend(args);
+                    var router = GetRouter(new string[0]);
                     break;
                 case "router":
                     // router
-                    var router = GetRouter(args);
+                    //var router = GetRouter(args);
                     break;
                 default:
                     Console.WriteLine("Only support frontend, backend, router");
                     break;
             }
 
+            //await StartBackend(args);
+
+            //var router = GetRouter(args);
+
+            //var client = GetFrontendWithRouter(new string[0]);
+            //await StartFrontend(args, client);
+
             Console.ReadKey();
         }
 
         static void LaunchBackend(string[] args)
         {
+            Console.WriteLine($"core: {backendNum}");
             var port = args.Length > 0 ? args[0] : "0";
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
@@ -125,7 +134,7 @@ namespace Samples.Cluster.RoundRobin
             }
         }
 
-        static async Task StartFrontend(string[] args, IActorRef client)
+        static async Task StartFrontend(IActorRef client)
         {
             await Task.Delay(TimeSpan.FromSeconds(20));
 
