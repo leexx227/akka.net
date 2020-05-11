@@ -21,7 +21,7 @@ namespace Samples.Cluster.RoundRobin
 
         protected ILoggingAdapter Log { get; } = Context.GetLogger();
 
-        private string routerPath = "akka.tcp://ClusterSystem@cn-xili10-0408:2553/user/router";
+        private string routerPath = "akka.tcp://ClusterSystem@" + Environment.MachineName + ":2553/user/router";
 
         public FrontendActor(IActorRef backendRouter)
         {
