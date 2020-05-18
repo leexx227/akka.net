@@ -25,7 +25,7 @@ namespace Samples.Cluster.RoundRobin
         private static Config _clusterConfig;
 
         private static int backendNum = Environment.ProcessorCount;
-        private static string hostName = Environment.MachineName;
+        private static string hostName = "127.0.0.1";
 
         public static int totalRequest = 10;
 
@@ -33,6 +33,13 @@ namespace Samples.Cluster.RoundRobin
 
         static async Task Main(string[] args)
         {
+
+            if (Environment.GetEnvironmentVariable("TotalRequest") != null)
+            {
+                Console.WriteLine("Get total request number from environment variable.");
+                totalRequest = int.Parse(Environment.GetEnvironmentVariable("TotalRequest"));
+            }
+
             var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
             _clusterConfig = section.AkkaConfig;
 
@@ -55,7 +62,7 @@ namespace Samples.Cluster.RoundRobin
                     Console.WriteLine("Only support frontend, backend, router");
                     break;
             }
-            Console.ReadKey();
+            await Task.Delay(-1);
         }
 
         static void LaunchBackend(string[] args)
