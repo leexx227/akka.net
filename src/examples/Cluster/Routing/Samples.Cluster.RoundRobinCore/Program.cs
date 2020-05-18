@@ -33,11 +33,11 @@ namespace Samples.Cluster.RoundRobin
 
         static async Task Main(string[] args)
         {
-
-            if (Environment.GetEnvironmentVariable("TotalRequest") != null)
+            string value = Environment.GetEnvironmentVariable("TOTALREQUEST");
+            if (value != null)
             {
-                Console.WriteLine("Get total request number from environment variable.");
-                totalRequest = int.Parse(Environment.GetEnvironmentVariable("TotalRequest"));
+                Console.WriteLine($"Get total request number from environment variable: TOTALREQUEST: {value}.");
+                totalRequest = int.Parse(value);
             }
 
             var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
