@@ -67,25 +67,28 @@ namespace Samples.Cluster.RoundRobin
 
         static void LaunchBackend(string[] args)
         {
+            string dnsName = "akka-test-backend";
             Console.WriteLine($"core: {backendNum}");
             var port = args.Length > 0 ? args[0] : "0";
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
                     .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [backend]"))
-                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + dnsName))
                         .WithFallback(_clusterConfig);
 
             var system = ActorSystem.Create("ClusterSystem", config);
-            system.ActorOf(Props.Create<BackendActor>(), "backend");
+            var backend = system.ActorOf(Props.Create<BackendActor>(), "backend");
+            Console.WriteLine($"Backend path: {backend.Path}");
         }
 
         static IActorRef GetFrontend(string[] args)
         {
+            string dnsName = "akka-test-frontend";
             var port = args.Length > 0 ? args[0] : "0";
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
                     .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
-                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + dnsName))
                         .WithFallback(_clusterConfig);
 
             var system = ActorSystem.Create("ClusterSystem", config);
@@ -142,11 +145,12 @@ namespace Samples.Cluster.RoundRobin
 
         static IActorRef GetRouter(string[] args)
         {
+            string dnsName = "akka-test-router";
             var port = args.Length > 0 ? args[0] : "2553";
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
                     .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [router]"))
-                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + dnsName))
                         .WithFallback(_clusterConfig);
 
             var system = ActorSystem.Create("ClusterSystem", config);
@@ -156,22 +160,25 @@ namespace Samples.Cluster.RoundRobin
                 system.ActorOf(
                     Props.Empty.WithRouter(new ClusterRouterGroup(new RoundRobinGroup(workers),
                         new ClusterRouterGroupSettings(1000, workers, true, "backend"))), "router");
+            Console.WriteLine($"Router path: {backendRouter.Path}");
             Console.WriteLine("Router start.");
             return backendRouter;
         }
 
         static IActorRef GetFrontendWithRouter(string[] args)
         {
+            string dnsName = "akka-test-frontend";
             var port = args.Length > 0 ? args[0] : "0";
             var config =
                     ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.port=" + port)
                     .WithFallback(ConfigurationFactory.ParseString("akka.cluster.roles = [frontend]"))
-                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + hostName))
+                    .WithFallback(ConfigurationFactory.ParseString("akka.remote.dot-netty.tcp.hostname=" + dnsName))
                         .WithFallback(_clusterConfig);
 
             var system = ActorSystem.Create("ClusterSystem", config);
 
             var frontend = system.ActorOf(Props.Create(() => new FrontendActor()), "frontend");
+            Console.WriteLine($"Frontend path: {frontend.Path}");
 
             return frontend;
         }
